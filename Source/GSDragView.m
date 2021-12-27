@@ -236,10 +236,14 @@ static	GSDragView *sharedDragView = nil;
 
 - (NSArray *) namesOfPromisedFilesDroppedAtDestination: (NSURL *)dropDestination
 {
-  if ([dragSource respondsToSelector:
-                    @selector(namesOfPromisedFilesDroppedAtDestination:)])
+  SEL sel;
+  id target;
+
+  sel = @selector(namesOfPromisedFilesDroppedAtDestination:);
+  target = GSTargetForSelector(dragSource, sel, target);
+  if (target != nil)
     {
-      return [dragSource namesOfPromisedFilesDroppedAtDestination: 
+      return [target namesOfPromisedFilesDroppedAtDestination: 
                            dropDestination];
     }
   else
