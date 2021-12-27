@@ -240,7 +240,7 @@ static	GSDragView *sharedDragView = nil;
   id target;
 
   sel = @selector(namesOfPromisedFilesDroppedAtDestination:);
-  target = GSTargetForSelector(dragSource, sel, target);
+  GSTargetForSelector(dragSource, sel, target);
   if (target != nil)
     {
       return [target namesOfPromisedFilesDroppedAtDestination: 
