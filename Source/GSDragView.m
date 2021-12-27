@@ -55,6 +55,23 @@
 #define SLIDE_TIME_STEP   .02   /* in seconds */
 #define SLIDE_NR_OF_STEPS 20  
 
+#define GSTargetForSelector(source, sel, target)	      \
+  target = nil;						      \
+  if ([source respondsToSelector: @selector(delegate)])	      \
+    {							      \
+      id sourceDelegate = [source delegate];		      \
+      if (sourceDelegate != nil				      \
+	  && [sourceDelegate respondsToSelector: sel] == YES) \
+	{						      \
+	  target = sourceDelegate;			      \
+	}						      \
+    }							      \
+  if (target == nil && [source respondsToSelector: sel])      \
+    {							      \
+      target = source;					      \
+    }
+  
+
 @interface GSRawWindow : NSWindow
 @end
 
@@ -597,29 +614,14 @@ static	GSDragView *sharedDragView = nil;
   NSDebugLLog(@"NSDragging", @"Drag window origin %@\n", NSStringFromPoint(startPoint));
 
   // Notify the source that dragging has started
-  if ([dragSource respondsToSelector:
-      @selector(draggedImage:beganAt:)])
+  sel = @selector(draggedImage:beganAt:);
+  GSTargetForSelector(dragSource, sel, target);
+  if (target != nil)
     {
-      [dragSource draggedImage: [self draggedImage]
+      [target draggedImage: [self draggedImage]
 		       beganAt: startPoint];
     }
 
-#define GSTargetForSelector(source, sel, target)	      \
-  target = nil;						      \
-  if ([source respondsToSelector: @selector(delegate)])	      \
-    {							      \
-      id sourceDelegate = [source delegate];		      \
-      if (sourceDelegate != nil				      \
-	  && [sourceDelegate respondsToSelector: sel] == YES) \
-	{						      \
-	  target = sourceDelegate;			      \
-	}						      \
-    }							      \
-  if (target == nil && [source respondsToSelector: sel])      \
-    {							      \
-      target = source;					      \
-    }
-  
   // --- Setup up the masks for the drag operation ---------------------
   sel = @selector(ignoreModifierKeysWhileDragging);
   GSTargetForSelector(dragSource, sel, target);
@@ -874,14 +876,16 @@ static	GSDragView *sharedDragView = nil;
   BOOL oldDestExternal = destExternal;
   int mouseWindowRef; 
   BOOL changeCursor = NO;
- 
+  id target;
+  SEL sel;
   //--- Move drag image to the new position -----------------------------------
   [self _moveDraggedImageToNewPosition];
 
-  if ([dragSource respondsToSelector:
-              @selector(draggedImage:movedTo:)])
+  sel = @selector(draggedImage:movedTo:);
+  GSTargetForSelector(dragSource, sel, target);
+  if (target != nil)
     {
-      [dragSource draggedImage: [self draggedImage] movedTo: dragPosition];
+      [target draggedImage: [self draggedImage] movedTo: dragPosition];
     }
 
   //--- Determine target window ---------------------------------------------
