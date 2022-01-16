@@ -55,6 +55,23 @@
 #define SLIDE_TIME_STEP   .02   /* in seconds */
 #define SLIDE_NR_OF_STEPS 20  
 
+#define GSTargetForSelector(source, sel, target)	      \
+  target = nil;						      \
+  if ([source respondsToSelector: @selector(delegate)])	      \
+    {							      \
+      id sourceDelegate = [source delegate];		      \
+      if (sourceDelegate != nil				      \
+	  && [sourceDelegate respondsToSelector: sel] == YES) \
+	{						      \
+	  target = sourceDelegate;			      \
+	}						      \
+    }							      \
+  if (target == nil && [source respondsToSelector: sel])      \
+    {							      \
+      target = source;					      \
+    }
+  
+
 @interface GSRawWindow : NSWindow
 @end
 
@@ -219,10 +236,14 @@ static	GSDragView *sharedDragView = nil;
 
 - (NSArray *) namesOfPromisedFilesDroppedAtDestination: (NSURL *)dropDestination
 {
-  if ([dragSource respondsToSelector:
-                    @selector(namesOfPromisedFilesDroppedAtDestination:)])
+  SEL sel;
+  id target;
+
+  sel = @selector(namesOfPromisedFilesDroppedAtDestination:);
+  GSTargetForSelector(dragSource, sel, target);
+  if (target != nil)
     {
-      return [dragSource namesOfPromisedFilesDroppedAtDestination: 
+      return [target namesOfPromisedFilesDroppedAtDestination: 
                            dropDestination];
     }
   else
@@ -588,6 +609,8 @@ static	GSDragView *sharedDragView = nil;
   // Storing values, to restore after we have finished.
   NSCursor      *cursorBeforeDrag = [NSCursor currentCursor];
   BOOL deposited;
+  id target;
+  SEL sel;
 
   startPoint = [eWindow convertBaseToScreen: [theEvent locationInWindow]];
   startPoint.x -= offset.width;
@@ -595,17 +618,18 @@ static	GSDragView *sharedDragView = nil;
   NSDebugLLog(@"NSDragging", @"Drag window origin %@\n", NSStringFromPoint(startPoint));
 
   // Notify the source that dragging has started
-  if ([dragSource respondsToSelector:
-      @selector(draggedImage:beganAt:)])
+  sel = @selector(draggedImage:beganAt:);
+  GSTargetForSelector(dragSource, sel, target);
+  if (target != nil)
     {
-      [dragSource draggedImage: [self draggedImage]
+      [target draggedImage: [self draggedImage]
 		       beganAt: startPoint];
     }
 
   // --- Setup up the masks for the drag operation ---------------------
-  if ([dragSource respondsToSelector:
-    @selector(ignoreModifierKeysWhileDragging)]
-    && [dragSource ignoreModifierKeysWhileDragging])
+  sel = @selector(ignoreModifierKeysWhileDragging);
+  GSTargetForSelector(dragSource, sel, target);
+  if (target != nil && [target ignoreModifierKeysWhileDragging])
     {
       operationMask = NSDragOperationIgnoresModifiers;
     }
@@ -616,10 +640,11 @@ static	GSDragView *sharedDragView = nil;
     }
 
 
-  if ([dragSource respondsToSelector:
-                    @selector(draggingSourceOperationMaskForLocal:)])
+  sel = @selector(draggingSourceOperationMaskForLocal:);
+  GSTargetForSelector(dragSource, sel, target);
+  if (target != nil)
     {
-      dragMask = [dragSource draggingSourceOperationMaskForLocal: !destExternal];
+      dragMask = [target draggingSourceOperationMaskForLocal: !destExternal];
     }
   else
     {
@@ -698,8 +723,9 @@ static	GSDragView *sharedDragView = nil;
       deposited = NO;
     }
 
-  if ([dragSource respondsToSelector:
-                      @selector(draggedImage:endedAt:operation:)])
+  sel = @selector(draggedImage:endedAt:operation:);
+  GSTargetForSelector(dragSource, sel, target);
+  if (target != nil)
      {
        NSPoint point;
            
@@ -708,23 +734,27 @@ static	GSDragView *sharedDragView = nil;
        point.x -= offset.width;
        point.y -= offset.height;
        point = [[theEvent window] convertBaseToScreen: point];
-       [dragSource draggedImage: [self draggedImage]
-                        endedAt: point
-                      operation: targetMask & dragMask & operationMask];
+       [target draggedImage: [self draggedImage]
+		    endedAt: point
+		  operation: targetMask & dragMask & operationMask];
      }
-   else if ([dragSource respondsToSelector:
-                            @selector(draggedImage:endedAt:deposited:)])
+   else
     {
-      NSPoint point;
+      sel = @selector(draggedImage:endedAt:deposited:);
+      GSTargetForSelector(dragSource, sel, target);
+      if (target != nil)
+	{
+	  NSPoint point;
           
-      point = [theEvent locationInWindow];
-      // Convert from mouse cursor coordinate to image coordinate
-      point.x -= offset.width;
-      point.y -= offset.height;
-      point = [[theEvent window] convertBaseToScreen: point];
-      [dragSource draggedImage: [self draggedImage]
+	  point = [theEvent locationInWindow];
+	  // Convert from mouse cursor coordinate to image coordinate
+	  point.x -= offset.width;
+	  point.y -= offset.height;
+	  point = [[theEvent window] convertBaseToScreen: point];
+	  [target draggedImage: [self draggedImage]
                        endedAt: point
                      deposited: deposited];
+	}
     }
 }
 
@@ -850,14 +880,16 @@ static	GSDragView *sharedDragView = nil;
   BOOL oldDestExternal = destExternal;
   int mouseWindowRef; 
   BOOL changeCursor = NO;
- 
+  id target;
+  SEL sel;
   //--- Move drag image to the new position -----------------------------------
   [self _moveDraggedImageToNewPosition];
 
-  if ([dragSource respondsToSelector:
-              @selector(draggedImage:movedTo:)])
+  sel = @selector(draggedImage:movedTo:);
+  GSTargetForSelector(dragSource, sel, target);
+  if (target != nil)
     {
-      [dragSource draggedImage: [self draggedImage] movedTo: dragPosition];
+      [target draggedImage: [self draggedImage] movedTo: dragPosition];
     }
 
   //--- Determine target window ---------------------------------------------
